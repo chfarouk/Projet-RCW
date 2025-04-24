@@ -248,7 +248,7 @@ def delete_user_api(user_id: int, db: Session = Depends(get_db)):
 
 # @app.on_event("startup")
 # def startup_event():
-#     # !!! DÉCOMMENTEZ CE BLOC UNIQUEMENT POUR LA PREMIÈRE CRÉATION !!!
+#     #  DÉCOMMENTEZ CE BLOC UNIQUEMENT POUR LA PREMIÈRE CRÉATION 
 #     print("Vérification et ajout potentiel des utilisateurs de test au démarrage...")
 #     db: Session = SessionLocal() 
 #     try:
@@ -270,4 +270,3 @@ def delete_user_api(user_id: int, db: Session = Depends(get_db)):
 #     finally:
 #          db.close() # Fermer la session
 #     # RE-COMMENTEZ CE BLOC APRÈS LE PREMIER LANCEMENT RÉUSSI 
-    # --- FIN AJOUT DONNÉES TEST ---
