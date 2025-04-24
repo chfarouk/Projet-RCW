@@ -44,7 +44,6 @@ with tab_create:
         submitted_create = st.form_submit_button("Créer le compte Bibliothécaire")
 
         if submitted_create:
-            # ... (Validation et logique d'appel API POST /api/users comme avant) ...
             if not biblio_username or not biblio_password: st.warning("Username/Mot de passe requis.")
             elif len(biblio_password) < 6: st.warning("Mot de passe >= 6 caractères.")
             elif not USER_API_URL: st.error("URL service utilisateur non configurée.")
@@ -150,8 +149,7 @@ with tab_manage:
             'id': 'ID', 'username': 'Utilisateur', 'email': 'Email',
             'subscription_status': 'Statut Abo', 'subscription_end_date': 'Fin Abo'
         })
-        # Formater la date (optionnel, on peut le faire dans la boucle aussi)
-        # df_mems_display['Fin Abo'] = pd.to_datetime(df_mems_display['Fin Abo']).dt.strftime('%d/%m/%Y').fillna('-')
+        
 
         # Afficher avec des boutons
         for index, user in df_mems.iterrows():
