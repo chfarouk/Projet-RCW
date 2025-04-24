@@ -29,7 +29,6 @@ def read_user_reservations(
     reservations = crud.get_reservations_by_user(db, user_id=user_id, status=status, skip=skip, limit=limit)
     return reservations
 
-
 @router.get("/{user_id}/loans/check", response_model=schemas.ActiveLoanCheck)
 def check_active_loan(user_id: int, document_id: int = Query(...), db: Session = Depends(get_db)):
     """Vérifie si un utilisateur a un prêt numérique ACTIF pour un document."""
@@ -41,4 +40,4 @@ def check_active_reservation(user_id: int, document_id: int = Query(...), db: Se
     """Vérifie si un utilisateur a une réservation physique ACTIVE pour un document."""
     resa = crud.get_active_reservation_by_user_and_document(db, user_id=user_id, document_id=document_id)
     return {"has_active_reservation": resa is not None}
-# === FIN AJOUT ===
+
