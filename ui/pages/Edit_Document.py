@@ -1,35 +1,28 @@
-# ui/pages/Edit_Document.py (v2 - Correction NameError et Submit Button)
 import streamlit as st
 import requests
 import os
 from dotenv import load_dotenv
 from urllib.parse import urljoin
 
-# Charger les URLs API
 load_dotenv()
 DOC_API_URL = os.getenv("DOCUMENT_SERVICE_API_URL")
-GATEWAY_URL = os.getenv("GATEWAY_STATIC_URL", "http://127.0.0.1:5000") # Pour image actuelle
+GATEWAY_URL = os.getenv("GATEWAY_STATIC_URL", "http://127.0.0.1:5000") 
 
 st.set_page_config(page_title="Modifier Document", layout="wide")
 
-
-
 st.title("📝 Modifier le Document")
 
-# --- Vérification Rôle et Connexion ---
 if not st.session_state.get('logged_in') or not st.session_state.get('user_info') or st.session_state['user_info'].get('role') != 'bibliothecaire':
     st.error("Accès réservé aux bibliothécaires.")
     st.page_link("streamlit_app.py", label="Retour à l'accueil", icon="🏠")
     st.stop()
 
-# --- Récupérer l'ID du document à éditer ---
 doc_id_to_edit = st.session_state.get("doc_id_to_edit")
 if not doc_id_to_edit:
     st.error("Aucun document sélectionné pour l'édition."); st.page_link("pages/1_Catalogue.py", label="Retour Catalogue"); st.stop()
 
 st.info(f"Modification du Document ID : {doc_id_to_edit}")
 
-# --- Récupérer les données actuelles du document ---
 doc_data = None; api_error = None
 if not DOC_API_URL: api_error = "URL service documents non configurée."
 else:
@@ -46,24 +39,20 @@ else:
 if api_error: st.error(api_error); st.stop()
 if not doc_data: st.error("Impossible de charger les données du document."); st.stop()
 
-# --- Affichage du Formulaire d'Édition ---
-with st.form("edit_document_form"): # Le formulaire commence ici
+with st.form("edit_document_form"): 
     st.subheader("Informations du Document")
     title = st.text_input("Titre*", key="edit_title", value=doc_data.get('title', ''))
     author = st.text_input("Auteur", key="edit_author", value=doc_data.get('author', ''))
     summary = st.text_area("Résumé", key="edit_summary", value=doc_data.get('summary', ''))
 
-    # Statut Physique (Affichage seulement)
-    current_status = doc_data.get('status', 'disponible') # Garder statut actuel
-    status_to_send = current_status # Variable pour l'envoi API
+    current_status = doc_data.get('status', 'disponible') 
+    status_to_send = current_status 
     if doc_data.get('is_physical'):
-        # CORRECTION : Utiliser current_status
         st.write("**Statut Physique Actuel :** ", current_status.capitalize())
         st.caption("Le statut physique est géré via les enregistrements de prêt/retour.")
     else:
-         status_to_send = 'disponible' # Forcer si pas physique
+         status_to_send = 'disponible' 
 
-    # Formats
     st.write("**Formats Disponibles***")
     col1_fmt, col2_fmt = st.columns(2)
     with col1_fmt:
@@ -71,12 +60,10 @@ with st.form("edit_document_form"): # Le formulaire commence ici
     with col2_fmt:
         is_digital = st.checkbox("Version Numérique (PDF)", key="edit_digi", value=doc_data.get('is_digital', False))
 
-    # Champ PDF (conditionnel)
     pdf_file_name = None
     if is_digital:
          pdf_file_name = st.text_input("Nom du fichier PDF*", key="edit_pdf_name", value=doc_data.get('file_path', ''), placeholder="ex: livre.pdf")
 
-    # Gestion Image
     st.write("**Image de Couverture**")
     current_image_filename = doc_data.get('cover_image_filename')
     if current_image_filename:
@@ -86,25 +73,18 @@ with st.form("edit_document_form"): # Le formulaire commence ici
     else:
          st.caption("Aucune image de couverture actuellement.")
          remove_cover = False
-    # On ne gère pas l'upload ici pour l'instant
     cover_image_name_to_send = current_image_filename
     if remove_cover: cover_image_name_to_send = None
 
-    # --- AJOUT : Bouton de soumission DU FORMULAIRE ---
     submitted = st.form_submit_button("Enregistrer les Modifications")
-    # --- FIN AJOUT ---
 
-    # --- Logique exécutée APRÈS clic sur le bouton ---
-    # TOUT CE BLOC DOIT ÊTRE INDENTÉ SOUS LE `with st.form`
     if submitted:
-        st.write("Formulaire soumis ! Tentative d'enregistrement...") # Message Debug
-        # Validations
+        st.write("Formulaire soumis ! Tentative d'enregistrement...") 
         if not title: st.warning("Titre requis.")
         elif not is_physical and not is_digital: st.warning("Format requis.")
         elif is_digital and not pdf_file_name: st.warning("Nom PDF requis.")
         elif not DOC_API_URL: st.error("URL service docs non configurée.")
         else:
-            # Préparer payload API PUT
             payload = {
                 "title": title, "author": author or None, "summary": summary or None,
                 "is_physical": is_physical, "is_digital": is_digital,
@@ -121,7 +101,6 @@ with st.form("edit_document_form"): # Le formulaire commence ici
                 if response.ok:
                     st.session_state['success_message'] = f"Document '{title}' modifié !"
                     if 'doc_id_to_edit' in st.session_state: del st.session_state['doc_id_to_edit']
-                    # Utiliser st.switch_page après succès
                     st.switch_page("pages/1_Catalogue.py")
                 else:
                      error_msg = f"Err API ({response.status_code})"; 
@@ -133,9 +112,7 @@ with st.form("edit_document_form"): # Le formulaire commence ici
             except requests.exceptions.RequestException as e:
                  st.error(f"Err comm service docs: {e}")
                  print(f"[Streamlit UI] Err comm edit doc: {e}")
-    # --- Fin de la logique de soumission ---
 
-# --- Fin du bloc `with st.form` ---
 
 st.divider()
 st.page_link("pages/1_Catalogue.py", label="Annuler et Retourner au Catalogue", icon="📖")
