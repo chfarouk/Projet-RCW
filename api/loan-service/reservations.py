@@ -1,19 +1,16 @@
-# api/loan-service/api/endpoints/reservations.py
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
 import crud, models, schemas
 from database import get_db
-from helpers import get_user_data, get_document_data # Helpers pour appels API externes
+from helpers import get_user_data, get_document_data 
 
 router = APIRouter()
 
 @router.post("/physical", response_model=schemas.ReservationOut, status_code=status.HTTP_201_CREATED)
 def create_new_physical_reservation(resa_data: schemas.ReservationCreate, db: Session = Depends(get_db)):
-    # Vérifications métier
     user_info = get_user_data(resa_data.user_id)
     if not user_info or user_info.get('role') != 'membre': raise HTTPException(status_code=403, detail="Utilisateur membre invalide")
-    # if user_info.get('subscription_status') != 'active': raise HTTPException(status_code=403, detail="Abonnement inactif")
     doc_info = get_document_data(resa_data.document_id)
     if not doc_info: raise HTTPException(status_code=404, detail="Document introuvable")
     if not doc_info.get('is_physical'): raise HTTPException(status_code=400, detail="Réservation impossible pour doc non physique")
@@ -25,7 +22,6 @@ def create_new_physical_reservation(resa_data: schemas.ReservationCreate, db: Se
 
 @router.post("/{reservation_id}/cancel", response_model=schemas.ReservationOut)
 def cancel_reservation(reservation_id: int, db: Session = Depends(get_db)):
-     # Valider user_id ? Normalement fait par la gateway avant l'appel
     try:
         updated_resa = crud.update_reservation_status(db=db, reservation_id=reservation_id, new_status='cancelled')
         if updated_resa is None: raise HTTPException(status_code=404, detail="Réservation non trouvée")
@@ -38,11 +34,8 @@ def count_active_reservations(status: Optional[str] = Query('active', enum=['act
     count = crud.count_reservations(db=db, status=status)
     return {"count": count}
 
-# Endpoint spécifique appelé par la Gateway quand un biblio change statut doc
 @router.post("/documents/{document_id}/sync_reservations", status_code=status.HTTP_200_OK)
 def sync_document_reservations(document_id: int, db: Session = Depends(get_db)):
-    # Cette route est appelée quand le document redevient disponible
-    # On annule les réservations actives pour ce document
     try:
         cancelled_count = crud.cancel_reservations_for_document(db=db, document_id=document_id)
         print(f"[Loan Service] Synchro résa pour Doc {document_id}: {cancelled_count} annulée(s).")
