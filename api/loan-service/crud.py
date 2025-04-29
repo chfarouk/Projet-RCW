@@ -1,15 +1,11 @@
-# api/loan-service/crud.py
 from sqlalchemy.orm import Session
-from sqlalchemy import func, desc # Pour count et order_by
+from sqlalchemy import func, desc 
 import models, schemas
 from datetime import datetime, timedelta
 from typing import List, Optional
 import os
 
-# --- Constantes ---
 DIGITAL_LOAN_DURATION_DAYS = 14
-
-# === CRUD pour Loans ===
 
 def get_loan(db: Session, loan_id: int) -> Optional[models.Loan]:
     return db.query(models.Loan).filter(models.Loan.id == loan_id).first()
@@ -41,7 +37,7 @@ def create_loan(db: Session, loan_data: schemas.LoanCreate) -> models.Loan:
         document_id=loan_data.document_id,
         loan_date=loan_date,
         due_date=due_date,
-        status='active' # Statut initial
+        status='active' 
     )
     db.add(db_loan)
     db.commit()
@@ -51,7 +47,7 @@ def create_loan(db: Session, loan_data: schemas.LoanCreate) -> models.Loan:
 def update_loan_status(db: Session, loan_id: int, new_status: str) -> Optional[models.Loan]:
     db_loan = get_loan(db, loan_id)
     if db_loan:
-        if new_status not in ['active', 'returned', 'expired']: # Validation statut
+        if new_status not in ['active', 'returned', 'expired']: 
              raise ValueError(f"Statut de prêt invalide: {new_status}")
         db_loan.status = new_status
         db.commit()
@@ -60,7 +56,6 @@ def update_loan_status(db: Session, loan_id: int, new_status: str) -> Optional[m
     return None
 
 def get_top_loaned_documents(db: Session, limit: int = 5) -> List[tuple]:
-     # Renvoie une liste de tuples (document_id, count)
      top_docs_query = db.query(
              models.Loan.document_id, func.count(models.Loan.id).label('loan_count')
           ).filter(models.Loan.status == 'active') \
@@ -68,8 +63,6 @@ def get_top_loaned_documents(db: Session, limit: int = 5) -> List[tuple]:
            .order_by(desc('loan_count')) \
            .limit(limit).all()
      return top_docs_query
-
-# === CRUD pour Reservations ===
 
 def get_reservation(db: Session, reservation_id: int) -> Optional[models.Reservation]:
     return db.query(models.Reservation).filter(models.Reservation.id == reservation_id).first()
@@ -97,7 +90,7 @@ def create_reservation(db: Session, resa_data: schemas.ReservationCreate) -> mod
     db_resa = models.Reservation(
         user_id=resa_data.user_id,
         document_id=resa_data.document_id,
-        status='active' # Statut initial
+        status='active' 
     )
     db.add(db_resa)
     db.commit()
@@ -107,7 +100,7 @@ def create_reservation(db: Session, resa_data: schemas.ReservationCreate) -> mod
 def update_reservation_status(db: Session, reservation_id: int, new_status: str) -> Optional[models.Reservation]:
     db_resa = get_reservation(db, reservation_id)
     if db_resa:
-        if new_status not in ['active', 'cancelled', 'honored']: # Statuts valides
+        if new_status not in ['active', 'cancelled', 'honored']: 
              raise ValueError(f"Statut de réservation invalide: {new_status}")
         db_resa.status = new_status
         db.commit()
