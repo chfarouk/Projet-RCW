@@ -1,24 +1,19 @@
-# ui/pages/Document_Detail.py (Version Minimale v3 - Lire ID Session + Syntaxe Corrigée)
 import streamlit as st
 import requests
 import os
 from dotenv import load_dotenv
 from urllib.parse import urljoin
-import time # Gardé si besoin de pause debug
+import time 
 
-# Charger SEULEMENT l'URL du service document pour ce test
 load_dotenv()
 DOC_API_URL = os.getenv("DOCUMENT_SERVICE_API_URL")
-# On aura besoin de LOAN_API_URL et GATEWAY_URL si on réactive le reste plus tard
 LOAN_API_URL = os.getenv("LOAN_SERVICE_API_URL")
 GATEWAY_URL = os.getenv("GATEWAY_STATIC_URL", "http://127.0.0.1:5000")
 
 
-# Configuration simple de la page
 st.set_page_config(page_title="Détail Document", layout="centered")
 st.title("🔍 Détail du Document")
 
-# --- 1. Vérification de Connexion (Robuste) ---
 if not st.session_state.get('logged_in', False):
     st.warning("Veuillez vous connecter pour accéder à cette page.")
     st.page_link("pages/2_Login_Inscription.py", label="Se connecter / S'inscrire", icon="🔑")
@@ -29,16 +24,13 @@ if not user_info:
      st.error("Erreur : Informations utilisateur manquantes dans la session.")
      st.stop()
 
-# --- 2. Récupérer l'ID du Document depuis l'état de session ---
 doc_id = st.session_state.get("doc_id_to_view")
 
 if not doc_id:
     st.error("Impossible de déterminer quel document afficher (ID manquant en session).")
     st.page_link("pages/1_Catalogue.py", label="Retour au Catalogue", icon="📖")
     st.stop()
-# Pas besoin de conversion int ici si on s'assure de stocker un int
 
-# --- 3. Appeler l'API Document Service ---
 doc_data = None
 api_error = None
 
@@ -50,14 +42,13 @@ elif doc_id:
         print(f"[Streamlit UI - Detail Session] Appel API: {api_url}")
         response = requests.get(api_url, timeout=5)
 
-        if response.ok: # Si statut 2xx
+        if response.ok: 
             doc_data = response.json()
             print(f"[Streamlit UI - Detail Session] Données reçues: {doc_data}")
         elif response.status_code == 404:
             api_error = f"Le document avec l'ID {doc_id} n'a pas été trouvé."
             print(f"[Streamlit UI - Detail Session] Erreur 404 API doc {doc_id}")
-        else: # Autre erreur API
-             # CORRECTION SYNTAXE TRY/EXCEPT (Bloc ELSE Principal)
+        else: 
              error_msg = f"Erreur API documents (Code: {response.status_code})"
              try:
                  error_detail = response.json().get('error', response.text)
@@ -65,19 +56,17 @@ elif doc_id:
              except: pass
              api_error = error_msg
              print(f"[Streamlit UI - Detail Session] Err API Détail Doc: {api_error}")
-             # Fin de la correction
 
     except requests.exceptions.RequestException as e:
         api_error = f"Erreur de communication avec le service documents : {e}"
         print(f"[Streamlit UI - Detail Session] Erreur communication: {e}")
 
-# --- 4. Affichage ---
 st.divider()
 
 if api_error: st.error(api_error)
 elif doc_data:
-    col1, col2 = st.columns([1, 2]) # Ratio colonnes
-    with col1: # Colonne Image
+    col1, col2 = st.columns([1, 2]) 
+    with col1: 
         cover_filename = doc_data.get('cover_image_filename')
         placeholder_path = os.path.join("static", "images", "placeholder_cover.png")
         image_path_to_display = placeholder_path
@@ -88,7 +77,7 @@ elif doc_data:
             else:
                 print(f"[Streamlit Detail] Image '{cover_filename}' (Doc ID {doc_id}) non trouvée localement à '{potential_path}', utilise placeholder.")
         st.image(image_path_to_display, use_container_width=True, output_format='auto')
-    with col2: # Infos Texte
+    with col2: 
         st.title(doc_data.get('title', 'Titre inconnu'))
         st.subheader(f"par {doc_data.get('author', 'Auteur inconnu')}")
         st.caption(f"ID: {doc_data.get('id')}")
@@ -101,12 +90,11 @@ elif doc_data:
             st.markdown(f"**Dispo. Physique :** :{color}[{status}]")
         with st.expander("Résumé"): st.write(doc_data.get('summary', 'Pas de résumé.'))
 
-        # --- Actions Membre (Réactivées mais avec syntaxe erreur corrigée) ---
         if user_info.get('role') == 'membre':
             st.markdown("---")
             st.subheader("Vos Actions")
             user_id = user_info.get('id'); has_active_loan = False; has_active_reservation = False
-            try: # Vérif prêt/résa
+            try: 
                 if LOAN_API_URL and doc_data.get('is_digital'):
                     loan_resp = requests.get(f"{LOAN_API_URL}/users/{user_id}/loans/check?document_id={doc_id}", timeout=3)
                     if loan_resp.ok: has_active_loan = loan_resp.json().get('has_active_loan', False)
@@ -115,28 +103,26 @@ elif doc_data:
                     if resa_resp.ok: has_active_reservation = resa_resp.json().get('has_active_reservation', False)
             except requests.exceptions.RequestException as e: st.caption(f"Err vérif prêt/résa: {e}")
 
-            if doc_data.get('is_digital'): # Emprunt Num
+            if doc_data.get('is_digital'): 
                 if has_active_loan: st.button("Déjà Emprunté (Num)", disabled=True, key="loan_disabled")
                 else:
                     with st.form(key='borrow_form'):
                         st.caption("Emprunter PDF (14 jours)."); borrow_button = st.form_submit_button("Emprunter (Num)", type="primary")
                         if borrow_button:
-                            # --- AJOUT DEBUG ---
                             st.info(f"Tentative d'emprunt par User ID: {user_id} pour Doc ID: {doc_id}")
                             print(f"[Streamlit UI] Tentative d'emprunt par User ID: {user_id} pour Doc ID: {doc_id}")
-                            # --- FIN AJOUT DEBUG ---
                             api_url = f"{LOAN_API_URL}/loans/digital"; payload = {"user_id": user_id, "document_id": doc_id}
                             try:
                                 response = requests.post(api_url, json=payload, timeout=5)
                                 if response.status_code == 201: st.session_state['success_message'] = "Doc emprunté !"; st.rerun()
-                                else: # CORRECTION SYNTAXE TRY/EXCEPT (Emprunt)
+                                else: 
                                     error_detail = None; error_msg = f"Err API ({response.status_code})"
                                     try: error_detail = response.json().get('error')
                                     except: pass
                                     st.error(f"Erreur emprunt: {error_detail or error_msg}")
                                     print(f"[Streamlit UI] Err API Emprunt {response.status_code}: {response.text}")
                             except requests.exceptions.RequestException as e: st.error(f"Err comm prêt: {e}")
-            if doc_data.get('is_physical'): # Résa Phys
+            if doc_data.get('is_physical'): 
                  if doc_data.get('status') == 'emprunte':
                      if has_active_reservation: st.button("Déjà Réservé (Phys)", disabled=True, key="resa_disabled")
                      else:
@@ -147,7 +133,7 @@ elif doc_data:
                                    try:
                                         response = requests.post(api_url, json=payload, timeout=5)
                                         if response.status_code == 201: st.session_state['success_message'] = "Doc réservé !"; st.rerun()
-                                        else: # CORRECTION SYNTAXE TRY/EXCEPT (Réservation)
+                                        else: 
                                              error_detail = None; error_msg = f"Err API ({response.status_code})"
                                              try: error_detail = response.json().get('error')
                                              except: pass
@@ -157,7 +143,7 @@ elif doc_data:
                  elif doc_data.get('status') == 'disponible': st.success("Disponible en rayon.")
                  else: st.info(f"Statut physique : {doc_data.get('status','Inconnu')}")
 else:
-    st.warning("Aucune donnée de document à afficher.") # Si doc_data est None après appel API
+    st.warning("Aucune donnée de document à afficher.") 
 st.divider()
 st.page_link("pages/1_Catalogue.py", label="← Retour au Catalogue", icon="📖")
 
