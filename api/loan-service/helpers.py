@@ -1,8 +1,6 @@
-# api/loan-service/helpers.py
 import requests
 import os
 
-# Récupérer les URLs depuis les variables d'environnement ou utiliser des défauts
 USER_SERVICE_URL = os.getenv('USER_SERVICE_URL', 'http://127.0.0.1:8001')
 DOCUMENT_SERVICE_URL = os.getenv('DOCUMENT_SERVICE_URL', 'http://127.0.0.1:8002')
 SERVICE_TIMEOUT = 5
